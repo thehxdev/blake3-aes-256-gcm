@@ -30,13 +30,14 @@ int main(int argc, char *argv[]) {
     blake3aes256gcm_encrypt(&aes, cipher, input, input_len, enc_iv, auth_tag, sizeof(auth_tag), NULL, 0);
 
     size_t i;
+    ssize_t j;
     printf("Encrypted data:\n");
     for (i = 0; i < input_len; i++)
         printf("%02x", cipher[i]);
 
-    printf("\n\nIV:\n");
-    for (i = 0; i < sizeof(enc_iv); i++)
-        printf("%02x", enc_iv[i]);
+    printf("\n\nEncryption IV:\n");
+    for (j = sizeof(enc_iv)-1; j >= 0; j--)
+        printf("%02x", enc_iv[j]);
 
     printf("\n\nAuth tag:\n");
     for (i = 0; i < sizeof(auth_tag); i++)
@@ -45,6 +46,11 @@ int main(int argc, char *argv[]) {
     memset(input, 0, sizeof(input));
     blake3aes256gcm_decrypt(&aes, input, cipher, input_len, enc_iv, auth_tag, sizeof(auth_tag), NULL, 0);
     printf("\n\nDecrypted data:\n%s\n", input);
+
+    printf("\nIV after encrypt and decrypt:\n");
+    for (j = sizeof(enc_iv)-1; j >= 0; j--)
+        printf("%02x", aes.iv[j]);
+    putchar('\n');
 
     blake3aes256gcm_destroy(&aes);
     return 0;
