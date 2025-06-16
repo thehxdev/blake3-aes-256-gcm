@@ -2,13 +2,13 @@
  * blake3-aes-256-gcm algorithm implementation
  */
 
-#include <endian.h>
 #include <assert.h>
 #include <string.h>
 #include <blake3.h>
 #include "base64.h"
 
 #include <wolfssl/options.h>
+#include <wolfssl/wolfcrypt/types.h>
 #include <wolfssl/wolfcrypt/random.h>
 #include <wolfssl/wolfcrypt/aes.h>
 
@@ -37,7 +37,7 @@ int blake3aes256gcm_set_salt(Blake3Aes256Gcm_t *self) {
 }
 
 static void blake3aes256gcm_inc_iv(byte *iv) {
-#if __BYTE_ORDER == __LITTLE_ENDIAN
+#if defined(LITTLE_ENDIAN_ORDER)
     word64 *low = (word64*)iv;
     word32 *high = (word32*)&iv[sizeof(*low)];
 #else
