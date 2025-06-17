@@ -1,48 +1,45 @@
-/* https://josefsson.org/base-encoding/ */
+/*
+ * Base64 encoder and decoder implementation.
+ * Author: Hossein Khosravi
+ *
+ * MIT License
+ * Copyright (c) Hossein Khosravi
+ * 
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ * 
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ * 
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ */
 
-/* base64.h -- Encode binary data using printable characters.
-   Copyright (C) 2004, 2005, 2006 Free Software Foundation, Inc.
-   Written by Simon Josefsson.
+#ifndef _BASE64_H_
+#define _BASE64_H_
 
-   This program is free software; you can redistribute it and/or modify
-   it under the terms of the GNU General Public License as published by
-   the Free Software Foundation; either version 2, or (at your option)
-   any later version.
-
-   This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-   GNU General Public License for more details.
-
-   You should have received a copy of the GNU General Public License
-   along with this program; if not, write to the Free Software Foundation,
-   Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.  */
-
-#ifndef BASE64_H
-#define BASE64_H
-
-/* Get size_t. */
 #include <stddef.h>
 
-/* Get bool. */
-#include <stdbool.h>
+#define base64_encoded_len(inlen) ((((inlen) + 2) / 3) << 2)
+#define base64_decoded_len(inlen) ((3 * ((inlen) >> 2)) + 2)
 
-/* This uses that the expression (n+(k-1))/k means the smallest
-   integer >= n/k, i.e., the ceiling of n/k.  */
-#define BASE64_ENCODED_LENGTH(inlen) ((((inlen) + 2) / 3) << 2)
-#define BASE64_DECODED_LENGTH(inlen) ((3 * ((inlen) >> 2)) + 2)
+enum {
+    BASE64_NORMAL     = (1<<0),
+    BASE64_URL_SAFE   = (1<<1),
+    BASE64_NO_PADDING = (1<<2),
+};
 
-extern bool isbase64(char ch);
+size_t base64_encode(const char *in, size_t inlen, char *out, int mode);
 
-extern void base64_encode(const unsigned char *in, size_t inlen,
-                           unsigned char *out, size_t outlen);
+size_t base64_decode(const char *in, size_t inlen, char *out);
 
-extern size_t base64_encode_alloc(const unsigned char *in, size_t inlen, unsigned char **out);
-
-extern bool base64_decode(const unsigned char *in, size_t inlen,
-                          unsigned char *out, size_t *outlen);
-
-extern bool base64_decode_alloc(const unsigned char *in, size_t inlen,
-                                unsigned char **out, size_t *outlen);
-
-#endif /* BASE64_H */
+#endif // _BASE64_H_
