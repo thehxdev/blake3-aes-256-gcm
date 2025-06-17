@@ -5,7 +5,6 @@
 #include <assert.h>
 #include <string.h>
 #include <blake3.h>
-#include "base64.h"
 
 #include <wolfssl/options.h>
 #include <wolfssl/wolfcrypt/types.h>
@@ -14,25 +13,7 @@
 
 #include "blake3aes256gcm.h"
 
-#define BLAKE3_DERIVE_KEY_CONTEXT "blake3aes256gcm @COMMIT_REV@ @DATE@"
-
-int blake3aes256gcm_set_key(Blake3Aes256Gcm_t *self, const byte *key, size_t keytype) {
-    switch (keytype) {
-        case AES256_KEY_TYPE_PLAIN:
-            memmove(self->key_with_salt, key, AES256_KEY_LENGTH);
-            break;
-        case AES256_KEY_TYPE_BASE64:
-            base64_decode((char*)key, AES256_BASE64_KEY_LENGTH, (char*)self->key_with_salt);
-            break;
-        default:
-            assert(0);
-    }
-    return 0;
-}
-
-int blake3aes256gcm_set_salt(Blake3Aes256Gcm_t *self) {
-    return wc_RNG_GenerateBlock(&self->rng, &self->key_with_salt[AES256_KEY_LENGTH], AES256_SALT_LENGTH);
-}
+#define BLAKE3_DERIVE_KEY_CONTEXT "blake3aes256gcm @RAND_STRING@ @DATE@"
 
 static void blake3aes256gcm_inc_iv(byte *iv) {
 #if defined(LITTLE_ENDIAN_ORDER)
@@ -47,33 +28,27 @@ static void blake3aes256gcm_inc_iv(byte *iv) {
         *high += 1;
 }
 
-int blake3aes256gcm_set_iv(Blake3Aes256Gcm_t *self) {
-    // int err = wc_RNG_GenerateBlock(&self->rng, self->iv, sizeof(self->iv));
-    // assert(err == 0 && "wc_RNG_GenerateBlock failed");
-    // return err;
-    memset(self->iv, 0, sizeof(self->iv));
+int blake3aes256gcm_zero_iv(byte *iv_out) {
+    memset(iv_out, 0, AES256_IV_SIZE);
     return 0;
 }
 
-int blake3aes256gcm_set_derived_key(Blake3Aes256Gcm_t *self) {
+int blake3aes256gcm_gen_derived_key(const byte *key, const byte *salt, byte *derived_key_out) {
     blake3_hasher hasher;
     memset(&hasher, 0, sizeof(hasher));
 
     blake3_hasher_init_derive_key(&hasher, BLAKE3_DERIVE_KEY_CONTEXT);
-    blake3_hasher_update(&hasher, self->key_with_salt, sizeof(self->key_with_salt));
-    blake3_hasher_finalize(&hasher, self->derived_key, BLAKE3_OUT_LEN);
+    blake3_hasher_update(&hasher, key, AES256_KEY_SIZE);
+    blake3_hasher_update(&hasher, salt, AES256_SALT_SIZE);
+    blake3_hasher_finalize(&hasher, derived_key_out, BLAKE3_OUT_LEN);
 
     return 0;
 }
 
-int blake3aes256gcm_init(Blake3Aes256Gcm_t *self, const byte *key, size_t keytype) {
+int blake3aes256gcm_init(Blake3Aes256Gcm_t *self, const byte *key, const byte *salt) {
     int err;
 
-    wc_InitRng(&self->rng);
-
-    blake3aes256gcm_set_key(self, key, keytype);
-    blake3aes256gcm_set_salt(self);
-    blake3aes256gcm_set_derived_key(self);
+    blake3aes256gcm_gen_derived_key(key, salt, self->derived_key);
 
     err = wc_AesInit(&self->aes, NULL, INVALID_DEVID);
     assert(err == 0 && "wc_AesInit failed");
@@ -81,40 +56,37 @@ int blake3aes256gcm_init(Blake3Aes256Gcm_t *self, const byte *key, size_t keytyp
     err = wc_AesGcmSetKey(&self->aes, self->derived_key, sizeof(self->derived_key));
     assert(err == 0 && "wc_AesGcmSetKey failed");
 
-    blake3aes256gcm_set_iv(self);
+    blake3aes256gcm_zero_iv(self->iv);
     return err;
 }
 
 void blake3aes256gcm_encrypt(Blake3Aes256Gcm_t *self, byte *out,
                              const byte *in, size_t in_size,
-                             byte *out_iv,
-                             byte *auth_tag, size_t auth_tag_size,
+                             byte *out_iv, byte *auth_tag,
                              const byte *auth_in, size_t auth_in_size)
 {
     wc_AesGcmEncrypt(&self->aes, out, in, in_size,
-                     self->iv, AES256_IV_LENGTH,
-                     auth_tag, auth_tag_size, auth_in, auth_in_size);
-    memmove(out_iv, self->iv, AES256_IV_LENGTH);
+                     self->iv, AES256_IV_SIZE,
+                     auth_tag, AES256_AUTH_TAG_SIZE, auth_in, auth_in_size);
+    memmove(out_iv, self->iv, AES256_IV_SIZE);
     blake3aes256gcm_inc_iv(self->iv);
 }
 
 int blake3aes256gcm_decrypt(Blake3Aes256Gcm_t *self, byte *out,
                             const byte *in, size_t in_size,
-                            const byte *iv,
-                            const byte *auth_tag, size_t auth_tag_size,
+                            const byte *iv, const byte *auth_tag,
                             const byte *auth_in, size_t auth_in_size)
 {
     int err = wc_AesGcmDecrypt(&self->aes, out, in, in_size,
-                               iv, AES256_IV_LENGTH,
-                               auth_tag, auth_tag_size, auth_in, auth_in_size);
+                               iv, AES256_IV_SIZE,
+                               auth_tag, AES256_AUTH_TAG_SIZE,
+                               auth_in, auth_in_size);
     blake3aes256gcm_inc_iv(self->iv);
     return err;
 }
 
 void blake3aes256gcm_destroy(Blake3Aes256Gcm_t *self) {
     wc_AesFree(&self->aes);
-    wc_FreeRng(&self->rng);
     memset(self->iv, 0, sizeof(self->iv));
     memset(self->derived_key, 0, sizeof(self->derived_key));
-    memset(self->key_with_salt, 0, sizeof(self->key_with_salt));
 }

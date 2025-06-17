@@ -4,8 +4,8 @@ execute_process(
 	OUTPUT_STRIP_TRAILING_WHITESPACE
 )
 execute_process(
-	COMMAND git rev-parse HEAD
-	OUTPUT_VARIABLE COMMIT_REV
+	COMMAND openssl rand -base64 16
+	OUTPUT_VARIABLE RAND_STRING
 	OUTPUT_STRIP_TRAILING_WHITESPACE
 )
 configure_file(blake3aes256gcm.c.in "${CMAKE_CURRENT_SOURCE_DIR}/blake3aes256gcm.c" @ONLY)
