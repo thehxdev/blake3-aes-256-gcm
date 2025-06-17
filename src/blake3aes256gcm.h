@@ -15,7 +15,7 @@
 #define AES256_BASE64_KEY_LENGTH (44)
 
 #define AES256_SALT_LENGTH AES256_KEY_LENGTH
-#define AUTH_TAG_LENGTH (16)
+#define AES256_AUTH_TAG_LENGTH (16)
 
 typedef struct blake3_aes256gcm {
     Aes aes;
