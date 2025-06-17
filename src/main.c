@@ -24,7 +24,7 @@ int main(int argc, char *argv[]) {
     byte cipher[sizeof(input)];
     memset(cipher, 0, sizeof(cipher));
 
-    byte auth_tag[AUTH_TAG_LENGTH];
+    byte auth_tag[AES256_AUTH_TAG_LENGTH];
     byte enc_iv[AES256_IV_LENGTH];
 
     blake3aes256gcm_encrypt(&aes, cipher, input, input_len, enc_iv, auth_tag, sizeof(auth_tag), NULL, 0);
