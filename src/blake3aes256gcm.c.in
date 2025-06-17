@@ -17,14 +17,12 @@
 #define BLAKE3_DERIVE_KEY_CONTEXT "blake3aes256gcm @COMMIT_REV@ @DATE@"
 
 int blake3aes256gcm_set_key(Blake3Aes256Gcm_t *self, const byte *key, size_t keytype) {
-    size_t dest_keylen = AES256_KEY_LENGTH;
     switch (keytype) {
         case AES256_KEY_TYPE_PLAIN:
             memmove(self->key_with_salt, key, AES256_KEY_LENGTH);
             break;
         case AES256_KEY_TYPE_BASE64:
             base64_decode((char*)key, AES256_BASE64_KEY_LENGTH, (char*)self->key_with_salt);
-            assert(dest_keylen == AES256_KEY_LENGTH);
             break;
         default:
             assert(0);
