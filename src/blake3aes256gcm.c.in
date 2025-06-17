@@ -48,9 +48,11 @@ static void blake3aes256gcm_inc_iv(byte *iv) {
 }
 
 int blake3aes256gcm_set_iv(Blake3Aes256Gcm_t *self) {
-    int err = wc_RNG_GenerateBlock(&self->rng, self->iv, sizeof(self->iv));
-    assert(err == 0 && "wc_RNG_GenerateBlock failed");
-    return err;
+    // int err = wc_RNG_GenerateBlock(&self->rng, self->iv, sizeof(self->iv));
+    // assert(err == 0 && "wc_RNG_GenerateBlock failed");
+    // return err;
+    memset(self->iv, 0, sizeof(self->iv));
+    return 0;
 }
 
 int blake3aes256gcm_set_derived_key(Blake3Aes256Gcm_t *self) {
